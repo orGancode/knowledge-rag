@@ -9,7 +9,8 @@ import os
 # 添加src目录到Python路径
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from embeddings import OllamaEmbeddings, OpenAIEmbeddings, HuggingFaceEmbeddings
+from embeddings import OllamaEmbeddings, HuggingFaceEmbeddings
+# from embeddings import OllamaEmbeddings, OpenAIEmbeddings, HuggingFaceEmbeddings
 
 def main():
     print("向量化功能使用示例\n")
@@ -127,30 +128,30 @@ def main():
     
     print("\n" + "="*60 + "\n")
     
-    # 4. 使用 OpenAI 嵌入模型 (如果有API密钥)
-    print("4. 使用 OpenAI 嵌入模型 (text-embedding-3-small)")
-    print("-" * 50)
-    try:
-        if os.getenv("OPENAI_API_KEY"):
-            openai_embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-            
-            # 嵌入单个查询
-            query_vector = openai_embeddings.embed_query(sample_text)
-            print(f"查询文本: {sample_text}")
-            print(f"向量维度: {len(query_vector)}")
-            print(f"向量前5个值: {query_vector[:5]}")
-            
-            # 嵌入多个文档
-            doc_vectors = openai_embeddings.embed_documents(sample_documents)
-            print(f"\n文档数量: {len(doc_vectors)}")
-            print(f"每个文档向量维度: {len(doc_vectors[0])}")
-            print("第一个文档向量前5个值:", doc_vectors[0][:5])
-            
-            print("\n✅ OpenAI 嵌入示例成功完成!")
-        else:
-            print("⚠️ 未找到 OPENAI_API_KEY 环境变量，跳过 OpenAI 示例")
-    except Exception as e:
-        print(f"❌ OpenAI 嵌入示例失败: {str(e)}")
+    # 4. 使用 OpenAI 嵌入模型 (如果有API密钥) - 暂时注释
+    # print("4. 使用 OpenAI 嵌入模型 (text-embedding-3-small)")
+    # print("-" * 50)
+    # try:
+    #     if os.getenv("OPENAI_API_KEY"):
+    #         openai_embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    #
+    #         # 嵌入单个查询
+    #         query_vector = openai_embeddings.embed_query(sample_text)
+    #         print(f"查询文本: {sample_text}")
+    #         print(f"向量维度: {len(query_vector)}")
+    #         print(f"向量前5个值: {query_vector[:5]}")
+    #
+    #         # 嵌入多个文档
+    #         doc_vectors = openai_embeddings.embed_documents(sample_documents)
+    #         print(f"\n文档数量: {len(doc_vectors)}")
+    #         print(f"每个文档向量维度: {len(doc_vectors[0])}")
+    #         print("第一个文档向量前5个值:", doc_vectors[0][:5])
+    #
+    #         print("\n✅ OpenAI 嵌入示例成功完成!")
+    #     else:
+    #         print("⚠️ 未找到 OPENAI_API_KEY 环境变量，跳过 OpenAI 示例")
+    # except Exception as e:
+    #     print(f"❌ OpenAI 嵌入示例失败: {str(e)}")
     
     print("\n" + "="*60)
     print("\n📝 使用说明:")

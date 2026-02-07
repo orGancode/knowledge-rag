@@ -9,7 +9,8 @@ import os
 # 添加src目录到Python路径
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from embeddings import OllamaEmbeddings, OpenAIEmbeddings, HuggingFaceEmbeddings
+from embeddings import OllamaEmbeddings, HuggingFaceEmbeddings
+# from embeddings import OllamaEmbeddings, OpenAIEmbeddings, HuggingFaceEmbeddings
 
 def test_ollama_embeddings():
     """测试Ollama向量化功能"""
@@ -42,41 +43,41 @@ def test_ollama_embeddings():
         print(f"❌ OllamaEmbeddings 测试失败: {str(e)}")
         return False
 
-def test_openai_embeddings():
-    """测试OpenAI向量化功能"""
-    print("\n测试 OpenAIEmbeddings...")
-    
-    try:
-        # 检查是否有API密钥
-        if not os.getenv("OPENAI_API_KEY"):
-            print("⚠️ 未找到 OPENAI_API_KEY 环境变量，跳过 OpenAI 测试")
-            return True
-            
-        # 初始化OpenAI嵌入模型
-        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-        
-        # 测试单个文本向量化
-        test_text = "This is a test text for embedding verification."
-        query_embedding = embeddings.embed_query(test_text)
-        print(f"查询文本向量维度: {len(query_embedding)}")
-        print(f"查询文本向量前5个值: {query_embedding[:5]}")
-        
-        # 测试批量文本向量化
-        test_texts = [
-            "This is the first test document.",
-            "This is the second test document with slightly different content.",
-            "Artificial intelligence is a branch of computer science."
-        ]
-        doc_embeddings = embeddings.embed_documents(test_texts)
-        print(f"文档向量数量: {len(doc_embeddings)}")
-        print(f"每个文档向量维度: {len(doc_embeddings[0])}")
-        print(f"第一个文档向量前5个值: {doc_embeddings[0][:5]}")
-        
-        print("✅ OpenAIEmbeddings 测试成功!")
-        return True
-    except Exception as e:
-        print(f"❌ OpenAIEmbeddings 测试失败: {str(e)}")
-        return False
+# def test_openai_embeddings():
+#     """测试OpenAI向量化功能"""
+#     print("\n测试 OpenAIEmbeddings...")
+#
+#     try:
+#         # 检查是否有API密钥
+#         if not os.getenv("OPENAI_API_KEY"):
+#             print("⚠️ 未找到 OPENAI_API_KEY 环境变量，跳过 OpenAI 测试")
+#             return True
+#
+#         # 初始化OpenAI嵌入模型
+#         embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+#
+#         # 测试单个文本向量化
+#         test_text = "This is a test text for embedding verification."
+#         query_embedding = embeddings.embed_query(test_text)
+#         print(f"查询文本向量维度: {len(query_embedding)}")
+#         print(f"查询文本向量前5个值: {query_embedding[:5]}")
+#
+#         # 测试批量文本向量化
+#         test_texts = [
+#             "This is the first test document.",
+#             "This is the second test document with slightly different content.",
+#             "Artificial intelligence is a branch of computer science."
+#         ]
+#         doc_embeddings = embeddings.embed_documents(test_texts)
+#         print(f"文档向量数量: {len(doc_embeddings)}")
+#         print(f"每个文档向量维度: {len(doc_embeddings[0])}")
+#         print(f"第一个文档向量前5个值: {doc_embeddings[0][:5]}")
+#
+#         print("✅ OpenAIEmbeddings 测试成功!")
+#         return True
+#     except Exception as e:
+#         print(f"❌ OpenAIEmbeddings 测试失败: {str(e)}")
+#         return False
 
 def test_huggingface_embeddings():
     """测试HuggingFace向量化功能"""
@@ -173,7 +174,7 @@ if __name__ == "__main__":
     # 测试各种嵌入模型
     results = []
     results.append(test_ollama_embeddings())
-    results.append(test_openai_embeddings())
+    # results.append(test_openai_embeddings())  # 暂时注释掉OpenAI测试
     results.append(test_huggingface_embeddings())
     results.append(test_huggingface_embeddings_advanced())
     

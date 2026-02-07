@@ -146,3 +146,13 @@ Thumbs.db
 
 # Data files (uncomment if you don't want to track data files)
 # data/
+
+# ChromaDB database directories
+chroma_db/
+test_chroma_db/
+test_simple_chroma_db/
+*.chroma/
+
+# Test output files
+test_*.db
+test_*.log
