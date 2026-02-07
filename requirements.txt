@@ -1,0 +1,32 @@
+# RAG Demo Project - Python Dependencies
+
+# ============ 核心框架 ============
+langchain==0.3.0
+langchain-community==0.3.0
+langchain-ollama==0.2.0
+
+# ============ 文档解析 ============
+pypdf==4.2.0          # PDF解析
+python-docx==1.1.0    # Word文档（可选）
+unstructured==0.14.0  # 万能文档解析（较重，可选）
+
+# ============ 向量数据库 ============
+chromadb==0.5.0
+
+# ============ Embedding模型（本地BGE） ============
+sentence-transformers==3.0.0
+torch==2.2.0
+transformers==4.40.0
+
+# Jupyter notebook
+jupyter>=1.0.0
+ipython>=8.0.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# ============ 工具依赖 ============
+tiktoken>=0.5.0
+numpy>=1.24.0
+pandas>=2.0.0
+tqdm==4.66.0          # 进度条（模型下载时显示）
