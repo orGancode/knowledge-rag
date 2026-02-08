@@ -1,9 +1,13 @@
 from typing import List, Dict, Any, Optional, Callable
 import uuid
+import os
 import chromadb
 from chromadb.config import Settings
 from chromadb.api.types import EmbeddingFunction
 from langchain.schema import Document
+
+# 禁用 ChromaDB 遥测功能以避免错误
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 
 class LangChainEmbeddingFunction(EmbeddingFunction):

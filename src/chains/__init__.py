@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any
 from langchain.schema import Document
 
+from .qa_chain import BasicQAChain
+
 
 class BaseChain(ABC):
     """Base class for RAG chains."""

@@ -118,6 +118,10 @@ class HuggingFaceEmbeddings(BaseEmbeddings):
             try:
                 from sentence_transformers import SentenceTransformer
                 import torch
+                import warnings
+                
+                # 过滤 huggingface_hub 的 FutureWarning
+                warnings.filterwarnings("ignore", category=FutureWarning, module="huggingface_hub")
                 
                 # Set default model kwargs
                 default_model_kwargs = {

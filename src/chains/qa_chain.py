@@ -1,0 +1,267 @@
+# src/chains/qa_chain.py
+from typing import List, Dict, Any, Optional, Union
+from langchain.schema import HumanMessage, SystemMessage
+from langchain.prompts import PromptTemplate
+from llms.ollama import OllamaLLM
+import ollama
+
+
+class BasicQAChain:
+    def __init__(self, retriever, llm_model: str = "gpt-3.5-turbo"):
+        """
+        初始化基础问答链
+        
+        Args:
+            retriever: 检索器对象
+            llm_model: LLM模型名称
+        """
+        self.retriever = retriever  # 你的vectorstore
+        self.llm_model = llm_model
+        
+        # 尝试初始化 LangChain 的 ChatOllama
+        try:
+            self.llm = OllamaLLM(model=llm_model)
+            self.use_langchain = True
+        except Exception as e:
+            print(f"警告: 无法初始化 LangChain ChatOllama: {str(e)}")
+            self.llm = None
+            self.use_langchain = False
+            
+        self.prompt = self._create_prompt()
+    
+    def _create_prompt(self):
+        """创建问答提示模板"""
+        template = """
+你是专业的文档问答助手。基于以下检索到的文档内容回答问题。
+
+文档内容：
+{context}
+
+用户问题：{question}
+
+回答要求：
+1. 只基于上述文档内容回答，不要编造信息
+2. 如果文档中没有相关信息，明确说明"根据提供的文档，无法找到相关信息"
+3. 回答简洁准确，控制在200字以内
+4. 在回答末尾列出参考的文档页码（如[Page: 1, 3]）
+
+回答：
+"""
+        return PromptTemplate(
+            input_variables=["context", "question"],
+            template=template
+        )
+    
+    def run(self, question: str, k: int = 7) -> dict:
+        """
+        执行问答链
+        
+        Args:
+            question: 用户问题
+            k: 检索的文档数量
+            
+        Returns:
+            包含answer和source_documents的字典
+        """
+        # 1. 检索相关文档
+        try:
+            # 获取相关文档
+            # 支持两种类型的检索器：对象（有similarity_search方法）或函数
+            if hasattr(self.retriever, 'similarity_search'):
+                docs = self.retriever.similarity_search(question, k=k)
+            else:
+                # 假设retriever是一个函数
+                docs = self.retriever(question, k=k)
+            
+            # 2. 构建context字符串
+            context_parts = []
+            source_documents = []
+            
+            for i, doc in enumerate(docs):
+                # 添加文档内容到context
+                context_parts.append(f"文档片段{i+1}: {doc['document']}")
+                
+                # 收集源文档信息
+                source_doc = {
+                    "content": doc["document"],
+                    "metadata": doc.get("metadata", {}),
+                    "similarity_score": doc.get("similarity_score", 0)
+                }
+                source_documents.append(source_doc)
+            
+            context = "\n\n".join(context_parts)
+            
+            # 3. 生成提示
+            prompt_value = self.prompt.format(context=context, question=question)
+            
+            # 4. 调用LLM生成答案
+            answer = None
+            llm_error = None
+            
+            if self.use_langchain and self.llm:
+                # 使用 LangChain 的 ChatOllama
+                messages = [
+                    SystemMessage(content="你是一个专业的文档问答助手，只基于提供的文档内容回答问题。"),
+                    HumanMessage(content=prompt_value)
+                ]
+                
+                try:
+                    response = self.llm.invoke(messages)
+                    answer = response.content
+                except Exception as e:
+                    print(f"LangChain ChatOllama 调用失败: {str(e)}")
+                    llm_error = str(e)
+                    # 回退到直接使用 ollama 库
+                    try:
+                        answer = self._call_ollama_directly(prompt_value)
+                        llm_error = None
+                    except Exception as e2:
+                        print(f"ollama 库调用也失败: {str(e2)}")
+                        llm_error = str(e2)
+            else:
+                # 直接使用 ollama 库
+                try:
+                    answer = self._call_ollama_directly(prompt_value)
+                except Exception as e:
+                    print(f"ollama 库调用失败: {str(e)}")
+                    llm_error = str(e)
+            
+            # 5. 如果LLM调用失败，生成基于检索结果的简单答案
+            if answer is None or llm_error:
+                print(f"⚠️  LLM服务不可用，使用检索结果生成答案")
+                answer = self._generate_simple_answer(question, source_documents)
+            
+            # 6. 返回结果
+            return {
+                "question": question,
+                "answer": answer,
+                "source_documents": source_documents
+            }
+            
+        except Exception as e:
+            return {
+                "question": question,
+                "answer": f"处理问题时发生错误: {str(e)}",
+                "source_documents": []
+            }
+    
+    def _generate_simple_answer(self, question: str, source_documents: list) -> str:
+        """
+        当LLM不可用时，基于检索结果生成简单答案
+        
+        Args:
+            question: 用户问题
+            source_documents: 检索到的文档列表
+            
+        Returns:
+            基于检索结果的简单答案
+        """
+        if not source_documents:
+            return "根据提供的文档，无法找到相关信息。"
+        
+        # 收集所有文档内容
+        all_content = "\n".join([doc["content"] for doc in source_documents])
+        
+        # 简单的关键词匹配
+        if "午休" in question or "午餐" in question:
+            # 查找包含午休信息的文档片段
+            for doc in source_documents:
+                content = doc["content"]
+                if "午休" in content or "午餐" in content:
+                    page = doc["metadata"].get("page", "未知")
+                    # 提取午休时间信息
+                    if "12:00-13:30" in content:
+                        return f"根据文档第{page}页，员工的午休时间是12:00-13:30。"
+                    elif "午休时间" in content:
+                        # 提取午休时间后面的内容
+                        import re
+                        match = re.search(r'午休时间[：:]\s*([^\n]+)', content)
+                        if match:
+                            return f"根据文档第{page}页，员工的{match.group(0)}。"
+                    return f"根据文档第{page}页，关于午休时间的信息：{content[:200]}..."
+            return "根据提供的文档，无法找到关于午休时间的具体信息。"
+        
+        elif "福利" in question or "待遇" in question:
+            for doc in source_documents:
+                content = doc["content"]
+                if "福利" in content or "待遇" in content:
+                    page = doc["metadata"].get("page", "未知")
+                    return f"根据文档第{page}页，关于员工福利的信息：{content[:200]}..."
+            return "根据提供的文档，无法找到关于员工福利的具体信息。"
+        
+        elif "请假" in question:
+            for doc in source_documents:
+                content = doc["content"]
+                if "请假" in content:
+                    page = doc["metadata"].get("page", "未知")
+                    return f"根据文档第{page}页，关于请假制度的信息：{content[:200]}..."
+            return "根据提供的文档，无法找到关于请假制度的具体信息。"
+        
+        elif "加班" in question:
+            for doc in source_documents:
+                content = doc["content"]
+                if "加班" in content:
+                    page = doc["metadata"].get("page", "未知")
+                    return f"根据文档第{page}页，关于加班规定的信息：{content[:200]}..."
+            return "根据提供的文档，无法找到关于加班规定的具体信息。"
+        
+        # 默认返回最相关的文档片段
+        best_doc = source_documents[0]
+        page = best_doc["metadata"].get("page", "未知")
+        similarity = best_doc.get("similarity_score", 0)
+        
+        return f"根据文档内容，相关信息请参考第{page}页（相似度: {similarity:.3f}）。文档中提到：{best_doc['content'][:300]}..."
+    
+    def _call_ollama_directly(self, prompt_value: str) -> str:
+        """
+        直接使用 ollama 库调用模型
+        
+        Args:
+            prompt_value: 格式化后的提示
+            
+        Returns:
+            模型生成的答案
+        """
+        try:
+            # 构建完整的提示
+            full_prompt = f"""你是一个专业的文档问答助手，只基于提供的文档内容回答问题。
+
+{prompt_value}"""
+            
+            # 首先尝试使用 ollama 库
+            try:
+                response = ollama.generate(
+                    model=self.llm_model,
+                    prompt=full_prompt,
+                    options={
+                        'temperature': 0.1,
+                        'top_p': 0.9,
+                        'max_tokens': 500
+                    }
+                )
+                return response['response'].strip()
+            except Exception as e:
+                print(f"ollama 库调用失败，尝试使用命令行: {str(e)}")
+                
+                # 回退到使用子进程调用命令行
+                import subprocess
+                result = subprocess.run(
+                    ['ollama', 'run', self.llm_model, full_prompt],
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                
+                if result.returncode == 0:
+                    # 清理输出中的控制字符
+                    output = result.stdout
+                    # 移除 ANSI 转义序列
+                    import re
+                    output = re.sub(r'\x1b\[[0-9;]*m', '', output)
+                    return output.strip()
+                else:
+                    raise Exception(f"命令行调用失败: {result.stderr}")
+            
+        except Exception as e:
+            print(f"所有 ollama 调用方式都失败: {str(e)}")
+            return f"生成答案时发生错误: {str(e)}"

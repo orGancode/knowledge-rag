@@ -152,6 +152,10 @@ chroma_db/
 test_chroma_db/
 test_simple_chroma_db/
 *.chroma/
+example_db/
+chroma_db*/
+test_db*/
+test_*_db/
 
 # Test output files
 test_*.db
