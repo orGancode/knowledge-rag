@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from loaders.pdf_loader import PDFLoader
 from splitters import HeadingBasedSplitter
-from embeddings import HuggingFaceEmbeddings
+from embeddings import OllamaEmbeddings
 from vectorstore import ChromaVectorStore
 from chains.qa_chain import BasicQAChain
 
@@ -30,7 +30,7 @@ class EmployeeHandbookQA:
         persist_directory: str = "./chroma_db",
         max_chunk_size: int = 1500,
         chunk_overlap: int = 100,
-        embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
+        embedding_model: str = "BAAI/bge-m3",
         llm_model: str = "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
     ):
         """
@@ -73,7 +73,7 @@ class EmployeeHandbookQA:
         
         # 1. 初始化嵌入模型
         print(f"\n🔤 加载嵌入模型: {self.embedding_model}")
-        self.embedder = HuggingFaceEmbeddings(model_name=self.embedding_model)
+        self.embedder = OllamaEmbeddings(model=self.embedding_model)
         
         # 2. 初始化向量存储
         print(f"\n💾 初始化向量数据库: {self.collection_name}")
@@ -241,7 +241,7 @@ def main():
         persist_directory="./chroma_db",
         max_chunk_size=1500,
         chunk_overlap=100,
-        embedding_model="sentence-transformers/all-MiniLM-L6-v2",
+        embedding_model="bge-m3:latest",
         llm_model="deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
     )
     
