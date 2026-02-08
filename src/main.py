@@ -31,7 +31,7 @@ class EmployeeHandbookQA:
         max_chunk_size: int = 1500,
         chunk_overlap: int = 100,
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
-        llm_model: str = "qwen:4b"
+        llm_model: str = "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
     ):
         """
         初始化员工手册问答系统
@@ -242,7 +242,7 @@ def main():
         max_chunk_size=1500,
         chunk_overlap=100,
         embedding_model="sentence-transformers/all-MiniLM-L6-v2",
-        llm_model="qwen:4b"
+        llm_model="deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
     )
     
     # 初始化系统

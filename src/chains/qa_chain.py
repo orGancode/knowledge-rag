@@ -2,12 +2,11 @@
 from typing import List, Dict, Any, Optional, Union
 from langchain.schema import HumanMessage, SystemMessage
 from langchain.prompts import PromptTemplate
-from llms.ollama import OllamaLLM
-import ollama
+from llms.siliconflow import SiliconFlowLLM
 
 
 class BasicQAChain:
-    def __init__(self, retriever, llm_model: str = "gpt-3.5-turbo"):
+    def __init__(self, retriever, llm_model: str = "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"):
         """
         初始化基础问答链
         
@@ -18,14 +17,14 @@ class BasicQAChain:
         self.retriever = retriever  # 你的vectorstore
         self.llm_model = llm_model
         
-        # 尝试初始化 LangChain 的 ChatOllama
+        # 初始化 SiliconFlow LLM
         try:
-            self.llm = OllamaLLM(model=llm_model)
-            self.use_langchain = True
+            self.llm = SiliconFlowLLM(model=llm_model)
+            self.use_siliconflow = True
         except Exception as e:
-            print(f"警告: 无法初始化 LangChain ChatOllama: {str(e)}")
+            print(f"警告: 无法初始化 SiliconFlow LLM: {str(e)}")
             self.llm = None
-            self.use_langchain = False
+            self.use_siliconflow = False
             
         self.prompt = self._create_prompt()
     
@@ -98,8 +97,8 @@ class BasicQAChain:
             answer = None
             llm_error = None
             
-            if self.use_langchain and self.llm:
-                # 使用 LangChain 的 ChatOllama
+            if self.use_siliconflow and self.llm:
+                # 使用 SiliconFlow LLM
                 messages = [
                     SystemMessage(content="你是一个专业的文档问答助手，只基于提供的文档内容回答问题。"),
                     HumanMessage(content=prompt_value)
@@ -109,21 +108,7 @@ class BasicQAChain:
                     response = self.llm.invoke(messages)
                     answer = response.content
                 except Exception as e:
-                    print(f"LangChain ChatOllama 调用失败: {str(e)}")
-                    llm_error = str(e)
-                    # 回退到直接使用 ollama 库
-                    try:
-                        answer = self._call_ollama_directly(prompt_value)
-                        llm_error = None
-                    except Exception as e2:
-                        print(f"ollama 库调用也失败: {str(e2)}")
-                        llm_error = str(e2)
-            else:
-                # 直接使用 ollama 库
-                try:
-                    answer = self._call_ollama_directly(prompt_value)
-                except Exception as e:
-                    print(f"ollama 库调用失败: {str(e)}")
+                    print(f"SiliconFlow LLM 调用失败: {str(e)}")
                     llm_error = str(e)
             
             # 5. 如果LLM调用失败，生成基于检索结果的简单答案
@@ -211,57 +196,3 @@ class BasicQAChain:
         similarity = best_doc.get("similarity_score", 0)
         
         return f"根据文档内容，相关信息请参考第{page}页（相似度: {similarity:.3f}）。文档中提到：{best_doc['content'][:300]}..."
-    
-    def _call_ollama_directly(self, prompt_value: str) -> str:
-        """
-        直接使用 ollama 库调用模型
-        
-        Args:
-            prompt_value: 格式化后的提示
-            
-        Returns:
-            模型生成的答案
-        """
-        try:
-            # 构建完整的提示
-            full_prompt = f"""你是一个专业的文档问答助手，只基于提供的文档内容回答问题。
-
-{prompt_value}"""
-            
-            # 首先尝试使用 ollama 库
-            try:
-                response = ollama.generate(
-                    model=self.llm_model,
-                    prompt=full_prompt,
-                    options={
-                        'temperature': 0.1,
-                        'top_p': 0.9,
-                        'max_tokens': 500
-                    }
-                )
-                return response['response'].strip()
-            except Exception as e:
-                print(f"ollama 库调用失败，尝试使用命令行: {str(e)}")
-                
-                # 回退到使用子进程调用命令行
-                import subprocess
-                result = subprocess.run(
-                    ['ollama', 'run', self.llm_model, full_prompt],
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
-                
-                if result.returncode == 0:
-                    # 清理输出中的控制字符
-                    output = result.stdout
-                    # 移除 ANSI 转义序列
-                    import re
-                    output = re.sub(r'\x1b\[[0-9;]*m', '', output)
-                    return output.strip()
-                else:
-                    raise Exception(f"命令行调用失败: {result.stderr}")
-            
-        except Exception as e:
-            print(f"所有 ollama 调用方式都失败: {str(e)}")
-            return f"生成答案时发生错误: {str(e)}"
