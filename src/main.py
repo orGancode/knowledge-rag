@@ -146,7 +146,7 @@ class EmployeeHandbookQA:
         
         return VectorStoreRetriever(self.store, self.embedder)
     
-    def ask(self, question: str, k: int = 7) -> dict:
+    def ask(self, question: str, k: int = 5) -> dict:
         """
         提问
         
@@ -165,16 +165,21 @@ class EmployeeHandbookQA:
         
         result = self.qa_chain.run(question, k=k)
         
-        print(f"📝 答案: {result['answer']}")
-        
-        if result['source_documents']:
-            print(f"\n📚 参考文档:")
-            for i, doc in enumerate(result['source_documents'], 1):
-                metadata = doc['metadata']
-                page = metadata.get('page', '未知')
-                similarity = doc.get('similarity_score', 0)
-                print(f"   [{i}] 页码: {page} | 相似度: {similarity:.3f}")
-                # print(f"       内容: {doc['content'][:100]}...")
+        # 检查是否跳过了检索（问候语等）
+        if result.get('skip_retrieval', False):
+            print(f"📝 答案: {result['answer']}")
+            print(f"⚡ 快速响应（跳过文档检索）")
+        else:
+            print(f"📝 答案: {result['answer']}")
+            
+            if result['source_documents']:
+                print(f"\n📚 参考文档:")
+                for i, doc in enumerate(result['source_documents'], 1):
+                    metadata = doc['metadata']
+                    page = metadata.get('page', '未知')
+                    similarity = doc.get('similarity_score', 0)
+                    print(f"   [{i}] 页码: {page} | 相似度: {similarity:.3f}")
+                    # print(f"       内容: {doc['content'][:100]}...")
         
         print("=" * 60)
         

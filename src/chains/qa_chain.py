@@ -27,6 +27,17 @@ class BasicQAChain:
             self.use_siliconflow = False
             
         self.prompt = self._create_prompt()
+        
+        # 预定义的问候语响应（无需检索文档）
+        self.greeting_responses = {
+            "hello": "你好！我是员工手册问答助手，请问有什么可以帮助您的？",
+            "你好": "你好！我是员工手册问答助手，请问有什么可以帮助您的？",
+            "hi": "你好！我是员工手册问答助手，请问有什么可以帮助您的？",
+            "嗨": "你好！我是员工手册问答助手，请问有什么可以帮助您的？",
+            "早上好": "早上好！我是员工手册问答助手，请问有什么可以帮助您的？",
+            "下午好": "下午好！我是员工手册问答助手，请问有什么可以帮助您的？",
+            "晚上好": "晚上好！我是员工手册问答助手，请问有什么可以帮助您的？",
+        }
     
     def _create_prompt(self):
         """创建问答提示模板"""
@@ -51,7 +62,7 @@ class BasicQAChain:
             template=template
         )
     
-    def run(self, question: str, k: int = 7) -> dict:
+    def run(self, question: str, k: int = 5) -> dict:
         """
         执行问答链
         
@@ -62,7 +73,16 @@ class BasicQAChain:
         Returns:
             包含answer和source_documents的字典
         """
-        # 1. 检索相关文档
+        # 0. 检查是否是问候语（无需检索文档）
+        question_lower = question.strip().lower()
+        if question_lower in self.greeting_responses:
+            return {
+                "question": question,
+                "answer": self.greeting_responses[question_lower],
+                "source_documents": [],
+                "skip_retrieval": True  # 标记跳过了检索
+            }
+        
         try:
             # 获取相关文档
             # 支持两种类型的检索器：对象（有similarity_search方法）或函数
@@ -155,7 +175,7 @@ class BasicQAChain:
                 if "午休" in content or "午餐" in content:
                     page = doc["metadata"].get("page", "未知")
                     # 提取午休时间信息
-                    if "12:00-13:30" in content:
+                    if "12:00-13:00" in content:
                         return f"根据文档第{page}页，员工的午休时间是12:00-13:30。"
                     elif "午休时间" in content:
                         # 提取午休时间后面的内容
